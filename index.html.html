@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grand Seas — Anime Pirate RPG</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#061526;color:#f4f8ff;font-family:system-ui,Segoe UI,sans-serif;overflow:hidden}
+#game{position:fixed;inset:0}canvas{display:block}
+.panel{background:linear-gradient(145deg,rgba(7,22,43,.94),rgba(9,42,67,.86));border:1px solid #4dbce0;border-radius:12px;box-shadow:0 8px 28px #00101f99;padding:12px}
+#hud{position:fixed;inset:0;pointer-events:none}#top{position:absolute;left:16px;top:14px;width:270px}#brand{font-weight:900;letter-spacing:2px;color:#6be2ff;font-size:22px;text-shadow:0 2px 12px #00aaff}#subtitle{font-size:11px;color:#b8d9ed;margin-bottom:10px}
+.bar{height:10px;background:#1b2d42;border-radius:9px;overflow:hidden;margin:5px 0 9px}.fill{height:100%;transition:width .2s}.hp{background:linear-gradient(90deg,#ff4b67,#ff9b74)}.xp{background:linear-gradient(90deg,#4b9dff,#7af5ff)}
+#quest{position:absolute;right:16px;top:14px;width:270px}h3{font-size:13px;margin:0 0 7px;color:#75e4ff}#questText{font-size:13px;line-height:1.55}#bottom{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);text-align:center;width:min(680px,95vw)}
+#abilities{display:flex;justify-content:center;gap:8px;margin-bottom:8px}.ability{width:78px;padding:7px 4px;border:1px solid #477f9d;border-radius:10px;background:#0a2138dd;font-size:11px}.key{display:inline-grid;place-items:center;background:#173d5a;border-radius:5px;padding:2px 6px;font-weight:800;color:#9eeaff;margin-bottom:3px}.ability b{display:block}.ability small{color:#b5d8e7}
+#message{font-size:13px;min-height:21px;color:#ffe6a4;text-shadow:0 2px 5px #000}#help{position:absolute;left:16px;bottom:15px;max-width:280px;font-size:12px;line-height:1.6;color:#d0e8f8}
+#center{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-size:28px;font-weight:900;text-shadow:0 3px 9px #000;display:none;text-align:center}
+#start{position:fixed;inset:0;display:grid;place-items:center;background:linear-gradient(#04152666,#041526d9);z-index:5}
+#startCard{width:min(520px,92vw);text-align:center;padding:28px}.logo{font-size:clamp(36px,8vw,62px);font-weight:1000;line-height:1;color:#70e8ff;text-shadow:0 0 24px #009de0;margin-bottom:8px}.tag{color:#b8d9ed;margin-bottom:22px}
+button{cursor:pointer;color:white;background:linear-gradient(135deg,#087eac,#315ee9);border:1px solid #80e8ff;border-radius:9px;padding:11px 16px;font-weight:800;font-size:14px}button:hover{filter:brightness(1.2)}input{background:#071a2b;color:white;border:1px solid #4dbce0;border-radius:7px;padding:10px;width:100%;margin:8px 0 13px}
+#bossbar{position:absolute;top:112px;left:50%;transform:translateX(-50%);width:min(390px,80vw);display:none;text-align:center}#bossbar .bar{height:13px}
+#toast{position:absolute;left:50%;top:20%;transform:translateX(-50%);font-weight:900;font-size:24px;color:#fff5a5;text-shadow:0 0 12px #ff8a00;opacity:0;transition:opacity .25s}
+@media(max-width:600px){#top{width:190px;left:8px;top:8px;padding:8px}#quest{width:180px;right:8px;top:8px;padding:8px}#brand{font-size:17px}#help{display:none}.ability{width:67px}#bottom{bottom:8px}}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="hud">
+ <div id="top" class="panel"><div id="brand">GRAND SEAS</div><div id="subtitle">FORGE YOUR OWN LEGEND</div><div><b id="playerName">Rookie Pirate</b> <span style="float:right">Lv. <b id="level">1</b></span></div><div class="bar"><div id="hpFill" class="fill hp" style="width:100%"></div></div><div style="font-size:11px">HP <span id="hpText">100 / 100</span></div><div class="bar"><div id="xpFill" class="fill xp" style="width:0%"></div></div><div style="font-size:11px">XP <span id="xpText">0 / 100</span> · Beli <span id="coins">0</span></div></div>
+ <div id="quest" class="panel"><h3>✦ MAIN QUEST</h3><div id="questText">Talk to Captain Mira at the harbor.</div><div style="height:8px"></div><h3>✦ FIELD GUIDE</h3><div style="font-size:12px">Defeat raiders, gain XP, then challenge the Tide Serpent.</div></div>
+ <div id="bossbar"><b id="bossName">TIDE SERPENT</b><div class="bar"><div id="bossFill" class="fill hp" style="width:100%"></div></div></div>
+ <div id="toast"></div><div id="center"></div>
+ <div id="bottom"><div id="abilities">
+  <div class="ability"><span class="key">J</span><b>Quick Slash</b><small>Instant</small></div>
+  <div class="ability"><span class="key">K</span><b>Gale Burst</b><small>Energy wave</small></div>
+  <div class="ability"><span class="key">L</span><b>Sky Dash</b><small>Mobility</small></div>
+  <div class="ability"><span class="key">E</span><b>Interact</b><small>Quest / loot</small></div>
+ </div><div id="message">Find Captain Mira near the dock.</div></div>
+ <div id="help" class="panel"><b>CONTROLS</b><br>WASD — Move · Mouse — Look around<br>J — Attack · K — Gale Burst · L — Dash<br>E — Talk / interact · Shift — Run</div>
+</div>
+<div id="start"><div id="startCard" class="panel"><div class="logo">GRAND SEAS</div><div class="tag">A 3D anime pirate adventure</div><div style="text-align:left;font-size:13px">Choose your pirate's name</div><input id="nameInput" maxlength="18" value="Rookie Pirate" aria-label="Pirate name"><button id="playBtn">SET SAIL ▶</button><p style="font-size:12px;color:#b8d9ed;margin-top:18px">Explore the island · master abilities · defeat the Tide Serpent</p></div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/PointerLockControls.js';
+
+const mount=document.querySelector('#game');
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x83d8ff); scene.fog=new THREE.Fog(0x83d8ff,55,175);
+const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.1,400);
+const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.15; mount.appendChild(renderer.domElement);
+const controls=new PointerLockControls(camera,renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xc9f2ff,0x43613b,2));
+const sun=new THREE.DirectionalLight(0xfff1ce,3.1); sun.position.set(-30,55,25); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); scene.add(sun);
+const mat=(color,roughness=.8,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
+const sand=mat(0xf4d18a), grass=mat(0x49b96b), darkGrass=mat(0x238e62), wood=mat(0x8c512b), plank=mat(0xc28a4b), leaf=mat(0x178b60), trunk=mat(0x7a4a2b), stone=mat(0x7b929e), white=mat(0xf4f5ee), red=mat(0xe54c4c), black=mat(0x1b2536), skin=mat(0xffc79e), gold=mat(0xffce4a), blue=mat(0x168dff), purple=mat(0x914dff);
+const box=(w,h,d,m,x,y,z,parent=scene)=>{let o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o};
+const sphere=(r,m,x,y,z,parent=scene)=>{let o=new THREE.Mesh(new THREE.SphereGeometry(r,16,12),m);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o};
+const cylinder=(rt,rb,h,m,x,y,z,parent=scene,seg=12)=>{let o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),m);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o};
+// Ocean and island
+const ocean=new THREE.Mesh(new THREE.PlaneGeometry(500,500,70,70),new THREE.MeshStandardMaterial({color:0x078ed0,roughness:.25,metalness:.25,flatShading:true})); ocean.rotation.x=-Math.PI/2;ocean.position.y=-1.25;scene.add(ocean);
+const island=new THREE.Mesh(new THREE.CylinderGeometry(38,43,3,64),sand); island.position.set(0,-.1,0); island.receiveShadow=true;scene.add(island);
+const meadow=new THREE.Mesh(new THREE.CylinderGeometry(34,39,1.3,64),grass);meadow.position.set(0,1.25,0);meadow.receiveShadow=true;scene.add(meadow);
+// sandy ring and path
+for(let i=0;i<90;i++){let a=i/90*Math.PI*2;let r=35+Math.sin(i*12)*1.5;let rock=sphere(.5+Math.random()*.7, i%2?sand:stone,Math.cos(a)*r,.7,Math.sin(a)*r);rock.scale.y=.5;}
+for(let i=0;i<14;i++){let z=23-i*2.8;box(4,.12,2,sand,0,1.95,z)}
+// trees
+for(let i=0;i<54;i++){let a=Math.random()*Math.PI*2,r=10+Math.random()*23,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<4&&z>3&&z<26)continue;
+ cylinder(.35,.6,3,trunk,x,2.5,z);let crown=sphere(1.8+Math.random()*1.1,i%3?leaf:darkGrass,x,4.7,z);crown.scale.set(1,1.1,1);}
+ // hills
+for(const [x,z,s] of [[-18,-13,7],[17,-18,8],[22,4,5],[-23,8,6]]){let h=sphere(s, darkGrass,x,1.6,z);h.scale.y=.65;}
+ // harbor dock
+for(let i=0;i<8;i++)box(5,.35,2,plank,0,1.3,21+i*1.7);
+for(let x of [-2.2,2.2])for(let i=0;i<4;i++)cylinder(.18,.22,2,wood,x,.5,21+i*3.1);
+ // small ship
+for(let i=0;i<7;i++)box(1.2,.45,1.4,wood,7,0.5,26+i*.6);
+cylinder(.18,.25,9,wood,7,5,27);
+let sail=new THREE.Mesh(new THREE.PlaneGeometry(4.8,5),white);sail.position.set(7,5.4,27);sail.rotation.y=.1;scene.add(sail);
+box(.18,.2,1.4,red,7,5.2,26.25);
+// clouds
+for(let i=0;i<18;i++){let x=(Math.random()-.5)*130,z=(Math.random()-.5)*130,y=22+Math.random()*10;for(let j=0;j<4;j++)sphere(2.5,white,x+j*2.1,y+(Math.random()-.5),z);}
+ // pirate character group
+function makePirate(color=red,enemy=false){
+ const g=new THREE.Group();scene.add(g);
+ const torso=box(.9,1.1,.48, color,0,1.75,0,g);const head=sphere(.38,skin,0,2.55,0,g);
+ sphere(.4,black,0,2.78,-.03,g);box(.85,.15,white, enemy?black:gold,0,2.57,-.02,g);
+ const arm1=box(.25,.85,.28,color,-.62,1.8,0,g),arm2=box(.25,.85,.28,color,.62,1.8,0,g);
+ const leg1=box(.32,.9,.35,black,-.25,.65,0,g),leg2=box(.32,.9,.35,black,.25,.65,0,g);
+ sphere(.12,black,-.12,2.56,.32,g);sphere(.12,black,.12,2.56,.32,g);
+ if(!enemy){cylinder(.39,.39,.1,gold,0,2.99,0,g);cylinder(.4,.4,.08,gold,0,3.04,0,g);}
+ return {g,head,torso,arm1,arm2,leg1,leg2};
+}
+const player=makePirate(red,false);player.g.position.set(0,1.8,15);
+camera.position.set(0,5,22);camera.lookAt(0,2,15);
+const controls2=controls;
+const npcs=[];
+function makeNPC(name,x,z,color,kind){let p=makePirate(color,true);p.g.position.set(x,1.8,z);p.g.scale.setScalar(kind==='boss'?2.8:1);npcs.push({name,...p,kind,hp:kind==='boss'?650:kind==='raider'?65:100,max:kind==='boss'?650:kind==='raider'?65:100,alive:true,attack:0});return p;}
+const mira=makeNPC('Captain Mira',-4,17,blue,'mira'); mira.g.scale.setScalar(1.03);
+const enemies=[];for(let i=0;i<7;i++){let a=Math.random()*6.28,r=10+Math.random()*17;let e=makeNPC('Sea Raider',Math.cos(a)*r,Math.sin(a)*r, i%2?purple:red,'raider');enemies.push(e);}
+const boss=makeNPC('Tide Serpent',0,-25,blue,'boss');boss.g.scale.set(2.8,2.2,2.8);boss.g.visible=false;
+ // floating name labels
+function label(text){let c=document.createElement('canvas');c.width=512;c.height=96;let ctx=c.getContext('2d');ctx.fillStyle='rgba(3,18,35,.8)';ctx.fillRect(4,8,504,80);ctx.strokeStyle='#70e8ff';ctx.lineWidth=4;ctx.strokeRect(4,8,504,80);ctx.fillStyle='white';ctx.font='bold 38px system-ui';ctx.textAlign='center';ctx.fillText(text,256,61);let t=new THREE.CanvasTexture(c);let s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true}));s.scale.set(5, .95,1);return s;}
+const labels=[];for(let o of [{n:'Captain Mira  [E]',p:mira.g},{n:'Tide Serpent',p:boss.g},...enemies.map(e=>({n:'Sea Raider',p:e.g}))]){let s=label(o.n);s.position.set(0,4,0);o.p.add(s);labels.push(s);}
+ // decorative ability effect
+const effects=[];
+function burst(pos,color,scale=1){let mesh=new THREE.Mesh(new THREE.SphereGeometry(1,18,12),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.7,wireframe:true}));mesh.position.copy(pos);mesh.scale.setScalar(.3);scene.add(mesh);effects.push({mesh,life:.45,max:.45,scale});}
+function slashEffect(color=0x62f5ff){let g=new THREE.Group();scene.add(g);let m=new THREE.Mesh(new THREE.TorusGeometry(1.5,.09,8,32,Math.PI*1.45),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.95}));g.add(m);g.position.copy(player.g.position);g.position.y+=1.7;g.rotation.x=Math.PI/2;effects.push({mesh:g,life:.32,max:.32,scale:2.1});}
+function wave(){let m=new THREE.Mesh(new THREE.RingGeometry(.8,1.2,48),new THREE.MeshBasicMaterial({color:0x5cecff,transparent:true,opacity:.95,side:THREE.DoubleSide}));m.rotation.x=-Math.PI/2;m.position.copy(player.g.position);m.position.y=.2;scene.add(m);effects.push({mesh:m,life:.7,max:.7,scale:8});}
+const state={hp:100,maxHp:100,xp:0,level:1,coins:0,quest:0,raiders:0,bossUnlocked:false,bossDefeated:false,attackCd:0,abilityCd:0,dashCd:0,invuln:0};
+const keys={};let started=false,last=performance.now(),toastTimer=0,questDone=false;
+const msg=t=>document.querySelector('#message').textContent=t;
+function toast(t){let el=document.querySelector('#toast');el.textContent=t;el.style.opacity=1;toastTimer=2.2;}
+function updateHUD(){document.querySelector('#playerName').textContent=document.querySelector('#nameInput').value.trim()||'Rookie Pirate';document.querySelector('#level').textContent=state.level;document.querySelector('#hpFill').style.width=state.hp/state.maxHp*100+'%';document.querySelector('#hpText').textContent=Math.ceil(state.hp)+' / '+state.maxHp;document.querySelector('#xpFill').style.width=state.xp/100*100+'%';document.querySelector('#xpText').textContent=state.xp+' / 100';document.querySelector('#coins').textContent=state.coins;
+let q=state.quest===0?'Talk to Captain Mira at the harbor.':state.quest===1?`Defeat Sea Raiders (${state.raiders}/5) and return to Mira.`:state.quest===2?'Travel north and defeat the Tide Serpent.':state.bossDefeated?'Story complete! You are a legend of the Grand Seas.':'Find the Tide Serpent beyond the island.';
+document.querySelector('#questText').textContent=q;document.querySelector('#bossbar').style.display=state.bossUnlocked&&!state.bossDefeated?'block':'none';document.querySelector('#bossFill').style.width=(boss.hp/boss.max*100)+'%';}
+function damageTarget(target,damage){if(!target.alive)return;target.hp-=damage;burst(target.g.position,0x5beeff,1);if(target.kind==='raider'){toast('-'+damage+' damage');}
+if(target.hp<=0){target.alive=false;target.g.visible=false;if(target.kind==='raider'){state.raiders++;state.xp+=35;state.coins+=25;toast('RAIDER DEFEATED  +35 XP');}else if(target.kind==='boss'){state.bossDefeated=true;state.xp+=200;state.coins+=500;toast('TIDE SERPENT DEFEATED! +500 BELI');}
+while(state.xp>=100){state.xp-=100;state.level++;state.maxHp+=20;state.hp=state.maxHp;toast('LEVEL UP!  LEVEL '+state.level);}if(state.raiders>=5&&state.quest===1){state.quest=2;msg('Quest complete! Return to Captain Mira.');toast('QUEST COMPLETE');}if(target.kind==='boss'){document.querySelector('#center').style.display='block';document.querySelector('#center').innerHTML='VICTORY!<br><small style="font-size:15px">The sea is yours to explore.</small>';setTimeout(()=>document.querySelector('#center').style.display='none',3000);}updateHUD();}
+}
+function attack(dmg,range,kind){if(state.attackCd>0)return;state.attackCd=kind==='burst'?.8:.42;if(kind==='burst')wave();else slashEffect();let all=[...enemies,...(state.bossUnlocked?[boss]:[])];let hit=0;for(let e of all){if(!e.alive||!e.g.visible)continue;let dist=player.g.position.distanceTo(e.g.position);if(dist<range){damageTarget(e,dmg);hit++;}}if(!hit)msg(kind==='burst'?'Gale Burst tears through the air!':'Your attack cuts through the air.');}
+function nearestInteract(){let d=player.g.position.distanceTo(mira.g.position);if(d<5){if(state.quest===0){state.quest=1;toast('NEW QUEST: CLEAR THE HARBOR');msg('Captain Mira: “Five raiders are troubling our island. Send them packing!”');}else if(state.quest===1&&state.raiders>=5){state.quest=2;state.bossUnlocked=true;boss.g.visible=true;toast('BOSS UNLOCKED: TIDE SERPENT');msg('Captain Mira: “The serpent waits on the northern shore. Be brave!”');}else if(state.quest===1){msg('Captain Mira: “Defeat five Sea Raiders, then come back.”');}else if(state.quest===2){state.bossUnlocked=true;boss.g.visible=true;msg('Captain Mira: “Head north to the stormy shore!”');}else{msg('Captain Mira: “The Grand Seas are yours, captain!”');}updateHUD();return;}
+let loot=false;for(let e of enemies)if(!e.alive&&player.g.position.distanceTo(e.g.position)<4){loot=true;}if(loot){state.coins+=10;toast('+10 BELI');msg('You found a few coins among the wreckage.');return;}msg('Nothing to interact with nearby. Find Captain Mira at the dock.');}
+document.querySelector('#playBtn').addEventListener('click',()=>{started=true;document.querySelector('#start').style.display='none';controls.lock();updateHUD();});
+controls.addEventListener('lock',()=>{});
+controls.addEventListener('unlock',()=>{if(started&&document.visibilityState==='visible'){msg('Click the game to look around again.');}});
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(!started)return;if(e.code==='KeyJ')attack(28,5,'slash');if(e.code==='KeyK'&&state.abilityCd<=0){state.abilityCd=4;attack(48,10,'burst');}if(e.code==='KeyL'&&state.dashCd<=0){state.dashCd=2;let dir=new THREE.Vector3();camera.getWorldDirection(dir);dir.y=0;dir.normalize();player.g.position.addScaledVector(dir,7);burst(player.g.position,0x9e66ff,1.5);msg('SKY DASH!');}if(e.code==='KeyE')nearestInteract();});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+renderer.domElement.addEventListener('click',()=>{if(started&&!controls.isLocked)controls.lock();});
+function clampIsland(){let p=player.g.position;let r=Math.hypot(p.x,p.z);if(r>33){p.x*=32.8/r;p.z*=32.8/r;}}
+function updateEnemy(e,dt){if(!e.alive||!e.g.visible)return;let p=e.g.position;let dist=p.distanceTo(player.g.position);if(dist<14&&dist>2.1){let dir=player.g.position.clone().sub(p).normalize();p.addScaledVector(dir,dt*(e.kind==='boss'?2.2:1.6));e.g.rotation.y=Math.atan2(dir.x,dir.z);}else if(dist<=2.3&&e.attack<=0&&state.invuln<=0){state.hp-=e.kind==='boss'?16:8;state.invuln=.75;e.attack=1.3;burst(player.g.position,0xff526b);toast('-'+(e.kind==='boss'?16:8)+' HP');if(state.hp<=0){state.hp=state.maxHp;player.g.position.set(0,1.8,15);toast('RESCUED AT THE HARBOR');}updateHUD();}e.attack=Math.max(0,e.attack-dt);}
+function animate(now){requestAnimationFrame(animate);let dt=Math.min((now-last)/1000,.05);last=now;if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)document.querySelector('#toast').style.opacity=0;}
+state.attackCd=Math.max(0,state.attackCd-dt);state.abilityCd=Math.max(0,state.abilityCd-dt);state.dashCd=Math.max(0,state.dashCd-dt);state.invuln=Math.max(0,state.invuln-dt);
+ocean.position.x=Math.sin(now*.00015)*.3;ocean.position.z=Math.cos(now*.00012)*.3;
+if(started&&controls.isLocked){let speed=keys.ShiftLeft?10:6;let forward=(keys.KeyW?1:0)-(keys.KeyS?1:0),side=(keys.KeyD?1:0)-(keys.KeyA?1:0);let dir=new THREE.Vector3();camera.getWorldDirection(dir);dir.y=0;dir.normalize();let right=new THREE.Vector3().crossVectors(dir,new THREE.Vector3(0,1,0)).negate();let move=new THREE.Vector3().addScaledVector(dir,forward).addScaledVector(right,side);if(move.lengthSq()>0){move.normalize();player.g.position.addScaledVector(move,dt*speed);player.g.rotation.y=Math.atan2(move.x,move.z);}clampIsland();
+camera.position.copy(player.g.position).add(new THREE.Vector3(0,3.8,0));let look=new THREE.Vector3();camera.getWorldDirection(look); // pointer lock camera direction; offset follow behind is handled with controls camera
+// Maintain third-person camera by positioning relative to player's facing, while mouse look steers view
+let desired=player.g.position.clone().add(new THREE.Vector3(0,4,0)).add(new THREE.Vector3(0,0,8).applyAxisAngle(new THREE.Vector3(0,1,0),player.g.rotation.y));
+if(!controls.isLocked)camera.position.lerp(desired,.05);
+for(let e of enemies)updateEnemy(e,dt);if(state.bossUnlocked&&!state.bossDefeated)updateEnemy(boss,dt);
+player.arm1.rotation.x=keys.KeyJ?-.9:Math.sin(now*.008)*.04;player.arm2.rotation.x=keys.KeyJ?-.9:0;
+}
+for(let ef of [...effects]){ef.life-=dt;let k=1-ef.life/ef.max;ef.mesh.scale.setScalar(.3+ef.scale*k);if(ef.mesh.material){ef.mesh.material.opacity=Math.max(0,ef.life/ef.max*.85);}if(ef.life<=0){scene.remove(ef.mesh);ef.mesh.geometry?.dispose();effects.splice(effects.indexOf(ef),1);}}
+for(let n of npcs){if(n.alive&&n.kind!=='raider'&&n.kind!=='boss')n.g.rotation.y=Math.sin(now*.0007)*.15;}
+renderer.render(scene,camera);}
+updateHUD();requestAnimationFrame(animate);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body></html>
